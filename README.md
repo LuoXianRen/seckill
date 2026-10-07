@@ -113,6 +113,7 @@
 
 ## 系统流程
 
+```mermaid
 flowchart TD
     U([用户]) --> A[登录 + 图形验证码]
     A --> B{鉴权 + @AccessLimit<br/>限流防刷拦截器}
