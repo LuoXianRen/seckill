@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.seckill.mapper.SeckillOrderMapper">
+
+    <resultMap id="orderMap" type="com.example.seckill.entity.SeckillOrder">
+        <id column="id" property="id"/>
+        <result column="user_id" property="userId"/>
+        <result column="goods_id" property="goodsId"/>
+        <result column="pay_amount" property="payAmount"/>
+        <result column="status" property="status"/>
+        <result column="create_date" property="createDate"/>
+        <result column="pay_date" property="payDate"/>
+    </resultMap>
+
+    <sql id="baseColumns">
+        id, user_id, goods_id, pay_amount, status, create_date, pay_date
+    </sql>
+
+    <select id="selectByUserAndGoods" resultMap="orderMap">
+        select <include refid="baseColumns"/>
+        from seckill_order
+        where user_id = #{userId}
+          and goods_id = #{goodsId}
+        limit 1
+    </select>
+
+    <select id="selectById" resultMap="orderMap">
+        select <include refid="baseColumns"/>
+        from seckill_order
+        where id = #{id}
+    </select>
+
+    <insert id="insertOrder" parameterType="com.example.seckill.entity.SeckillOrder">
+        insert into seckill_order
+        (id, user_id, goods_id, pay_amount, status, create_date, pay_date)
+        values
+        (#{id}, #{userId}, #{goodsId}, #{payAmount}, #{status}, #{createDate}, #{payDate})
+    </insert>
+
+    <!-- 乐观条件：只有未支付(0)的订单才能被取消，防止重复取消 -->
+    <update id="cancelOrder">
+        update seckill_order
+        set status = 2
+        where id = #{id}
+          and status = 0
+    </update>
+
+</mapper>

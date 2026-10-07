@@ -1,0 +1,39 @@
+# Compiled / packaged output
+target/
+build/
+!.mvn/wrapper/maven-wrapper.jar
+
+# IDE - IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+# IDE - Eclipse / STS
+.classpath
+.project
+.settings/
+.springBeans
+.factorypath
+
+# IDE - VS Code
+.vscode/
+
+# Logs
+logs/
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local config overrides (keep application.yml / application-dev.yml tracked)
+application-local.yml
+application-local.*.yml
+
+# Temporary files
+*.before
+*.bak
+*.tmp
+*.swp

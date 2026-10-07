@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.seckill.mapper.SeckillUserMapper">
+
+    <resultMap id="userMap" type="com.example.seckill.entity.SeckillUser">
+        <id column="id" property="id"/>
+        <result column="nickname" property="nickname"/>
+        <result column="mobile" property="mobile"/>
+        <result column="password" property="password"/>
+        <result column="salt" property="salt"/>
+        <result column="head" property="head"/>
+        <result column="register_date" property="registerDate"/>
+    </resultMap>
+
+    <sql id="baseColumns">
+        id, nickname, mobile, password, salt, head, register_date
+    </sql>
+
+    <select id="selectById" resultMap="userMap">
+        select <include refid="baseColumns"/>
+        from seckill_user
+        where id = #{id}
+    </select>
+
+    <select id="selectByMobile" resultMap="userMap">
+        select <include refid="baseColumns"/>
+        from seckill_user
+        where mobile = #{mobile}
+        limit 1
+    </select>
+
+</mapper>

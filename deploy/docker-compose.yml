@@ -1,0 +1,52 @@
+# 可选：一键启动秒杀依赖中间件（MySQL8 / Redis / RabbitMQ）
+# 使用方式：cd deploy && docker compose up -d
+# 停止并清理数据卷：docker compose down -v
+# 说明：本文件仅为本地开发提供便利，非必须；已自备中间件可忽略。
+version: "3.8"
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: seckill-mysql
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: seckill
+      TZ: Asia/Shanghai
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_general_ci
+    volumes:
+      - mysql-data:/var/lib/mysql
+      # 首次启动自动执行建表脚本（MySQL 镜像仅对空数据卷执行 /docker-entrypoint-initdb.d）
+      - ../src/main/resources/sql/seckill.sql:/docker-entrypoint-initdb.d/seckill.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: seckill-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: ["redis-server", "--appendonly", "yes"]
+
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    container_name: seckill-rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+
+volumes:
+  mysql-data:
+  redis-data:
+  rabbitmq-data:

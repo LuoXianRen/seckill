@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.seckill.mapper.SeckillGoodsMapper">
+
+    <resultMap id="goodsMap" type="com.example.seckill.entity.SeckillGoods">
+        <id column="id" property="id"/>
+        <result column="goods_name" property="goodsName"/>
+        <result column="goods_title" property="goodsTitle"/>
+        <result column="goods_img" property="goodsImg"/>
+        <result column="goods_detail" property="goodsDetail"/>
+        <result column="goods_price" property="goodsPrice"/>
+        <result column="seckill_price" property="seckillPrice"/>
+        <result column="stock_count" property="stockCount"/>
+        <result column="start_date" property="startDate"/>
+        <result column="end_date" property="endDate"/>
+    </resultMap>
+
+    <sql id="baseColumns">
+        id, goods_name, goods_title, goods_img, goods_detail, goods_price,
+        seckill_price, stock_count, start_date, end_date
+    </sql>
+
+    <select id="selectAll" resultMap="goodsMap">
+        select <include refid="baseColumns"/>
+        from seckill_goods
+        order by start_date asc
+    </select>
+
+    <select id="selectById" resultMap="goodsMap">
+        select <include refid="baseColumns"/>
+        from seckill_goods
+        where id = #{id}
+    </select>
+
+    <!-- 最终防超卖：仅当库存大于 0 时才允许扣减 -->
+    <update id="reduceStock">
+        update seckill_goods
+        set stock_count = stock_count - 1
+        where id = #{id}
+          and stock_count > 0
+    </update>
+
+    <update id="increaseStock">
+        update seckill_goods
+        set stock_count = stock_count + 1
+        where id = #{id}
+    </update>
+
+    <insert id="insertGoods" parameterType="com.example.seckill.dto.GoodsAddDTO"
+            useGeneratedKeys="true" keyProperty="id">
+        insert into seckill_goods
+        (goods_name, goods_title, goods_img, goods_detail, goods_price,
+         seckill_price, stock_count, start_date, end_date)
+        values
+        (#{goodsName}, #{goodsTitle}, #{goodsImg}, #{goodsDetail}, #{goodsPrice},
+         #{seckillPrice}, #{stockCount}, #{startDate}, #{endDate})
+    </insert>
+
+</mapper>

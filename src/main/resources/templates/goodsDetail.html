@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${goods.goodsName}">商品详情</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+<div class="topbar">
+    <span class="brand">🔥 高并发秒杀</span>
+    <span>
+        <a th:href="@{/seckill/list}">商品列表</a>
+    </span>
+</div>
+<div class="container">
+    <div class="detail-card">
+        <div class="detail-head">
+            <div>
+                <h1 style="font-size:24px;" th:text="${goods.goodsName}">商品名称</h1>
+                <p style="color:var(--text-sub);margin-top:6px;" th:text="${goods.goodsTitle}">标题</p>
+            </div>
+            <div style="text-align:right;">
+                <div class="countdown" id="countdown">--:--:--</div>
+                <div class="status-line" id="statusLine" style="margin-bottom:0;"></div>
+            </div>
+        </div>
+
+        <p class="status-line" th:text="${goods.goodsDetail}">详情</p>
+        <div class="price-row">
+            <span class="price-now">¥<span th:text="${goods.seckillPrice}">0</span></span>
+            <span class="price-origin">¥<span th:text="${goods.goodsPrice}">0</span></span>
+        </div>
+        <p class="stock-text">剩余库存：<span id="stockText" th:text="${goods.stockCount}">0</span> 件</p>
+
+        <!-- 验证码（秒杀进行中显示） -->
+        <div class="captcha-row" id="captchaRow" style="display:none;">
+            <img id="captchaImg" title="点击刷新验证码" alt="验证码">
+            <input type="text" id="captchaInput" placeholder="输入验证码" maxlength="6">
+        </div>
+
+        <div class="seckill-actions">
+            <button class="btn btn-primary" id="seckillBtn" style="width:220px;" disabled>暂不可抢</button>
+        </div>
+        <div id="seckillMsg"></div>
+    </div>
+</div>
+
+<!-- 商品数据（服务端渲染） -->
+<script th:inline="javascript">
+    var GOODS = {
+        id: /*[[${goods.id}]]*/ 0,
+        status: /*[[${goods.seckillStatus}]]*/ 0,
+        remainSeconds: /*[[${goods.remainSeconds}]]*/ 0,
+        stockCount: /*[[${goods.stockCount}]]*/ 0,
+        startTimestamp: /*[[${goods.startDate.getTime()}]]*/ 0,
+        endTimestamp: /*[[${goods.endDate.getTime()}]]*/ 0
+    };
+</script>
+<script>
+    var countdownEl = document.getElementById('countdown');
+    var statusLineEl = document.getElementById('statusLine');
+    var btn = document.getElementById('seckillBtn');
+    var msgEl = document.getElementById('seckillMsg');
+    var captchaRow = document.getElementById('captchaRow');
+    var captchaImg = document.getElementById('captchaImg');
+    var captchaInput = document.getElementById('captchaInput');
+
+    var seckillPath = null;
+    var polling = false;
+
+    function showMsg(text, type) {
+        msgEl.className = type || 'msg-info';
+        msgEl.innerText = text || '';
+    }
+
+    function pad(n) { return n < 10 ? '0' + n : '' + n; }
+
+    function formatHMS(sec) {
+        var h = Math.floor(sec / 3600);
+        var m = Math.floor((sec % 3600) / 60);
+        var s = sec % 60;
+        return pad(h) + ':' + pad(m) + ':' + pad(s);
+    }
+
+    function resultCodeText(code) {
+        var map = {
+            '-1': '手慢了，商品已售罄',
+            '-2': '您已抢购过该商品',
+            '-3': '系统繁忙，请稍后再试'
+        };
+        return map[String(code)] || '秒杀失败';
+    }
+
+    /* ---------------- 倒计时与按钮状态 ---------------- */
+    function tick() {
+        var now = Date.now();
+
+        if (now < GOODS.startTimestamp) {
+            var waitSec = Math.max(0, Math.ceil((GOODS.startTimestamp - now) / 1000));
+            countdownEl.innerText = formatHMS(waitSec);
+            statusLineEl.innerText = '距离秒杀开始还有';
+            btn.disabled = true;
+            btn.innerText = '尚未开始';
+            captchaRow.style.display = 'none';
+        } else if (now > GOODS.endTimestamp) {
+            countdownEl.innerText = '00:00:00';
+            statusLineEl.innerText = '秒杀已结束';
+            btn.disabled = true;
+            btn.innerText = '已结束';
+            captchaRow.style.display = 'none';
+        } else {
+            var leftSec = Math.max(0, Math.ceil((GOODS.endTimestamp - now) / 1000));
+            countdownEl.innerText = formatHMS(leftSec);
+            statusLineEl.innerText = '秒杀进行中，剩余时间';
+            if (!polling) {
+                btn.disabled = false;
+                btn.innerText = '立即抢购';
+            }
+            captchaRow.style.display = 'flex';
+        }
+    }
+
+    /* ---------------- 验证码 ---------------- */
+    function refreshCaptcha() {
+        captchaImg.src = '/seckill/captcha/' + GOODS.id + '?t=' + Date.now();
+    }
+    captchaImg.addEventListener('click', refreshCaptcha);
+
+    /* ---------------- 秒杀流程 ---------------- */
+    btn.addEventListener('click', function () {
+        var code = captchaInput.value.trim();
+        if (!code) { showMsg('请先输入验证码', 'msg-error'); return; }
+        btn.disabled = true;
+        btn.innerText = '排队中...';
+        showMsg('正在校验验证码并获取秒杀地址...', 'msg-info');
+
+        // 1. 校验验证码，获取动态 path
+        fetch('/seckill/path/' + GOODS.id + '?captcha=' + encodeURIComponent(code))
+            .then(function (r) { return r.json(); })
+            .then(function (res) {
+                if (res.code !== 200) {
+                    btn.disabled = false;
+                    btn.innerText = '立即抢购';
+                    refreshCaptcha();
+                    captchaInput.value = '';
+                    showMsg(res.message || '验证码错误', 'msg-error');
+                    return;
+                }
+                seckillPath = res.data.path;
+                startSeckill();
+            })
+            .catch(function () {
+                btn.disabled = false;
+                btn.innerText = '立即抢购';
+                showMsg('网络异常', 'msg-error');
+            });
+    });
+
+    // 2. 发起秒杀（隐藏地址）
+    function startSeckill() {
+        fetch('/seckill/' + seckillPath + '/do_seckill?goodsId=' + GOODS.id, {method: 'POST'})
+            .then(function (r) { return r.json(); })
+            .then(function (res) {
+                if (res.code !== 200) {
+                    btn.disabled = false;
+                    btn.innerText = '立即抢购';
+                    showMsg(res.message || '秒杀失败', 'msg-error');
+                    return;
+                }
+                showMsg('已进入排队，请稍候...', 'msg-info');
+                polling = true;
+                pollResult();
+            })
+            .catch(function () {
+                btn.disabled = false;
+                btn.innerText = '立即抢购';
+                showMsg('网络异常', 'msg-error');
+            });
+    }
+
+    // 3. 轮询结果
+    var pollTimes = 0;
+    function pollResult() {
+        var timer = setInterval(function () {
+            fetch('/seckill/result/' + GOODS.id)
+                .then(function (r) { return r.json(); })
+                .then(function (res) {
+                    pollTimes++;
+                    var value = res.data;
+                    if (value > 0) {
+                        clearInterval(timer);
+                        btn.innerText = '已抢到';
+                        showMsg('🎉 秒杀成功！订单号：' + value, 'msg-success');
+                    } else if (value < 0) {
+                        clearInterval(timer);
+                        polling = false;
+                        btn.disabled = false;
+                        btn.innerText = '立即抢购';
+                        showMsg(resultCodeText(value), 'msg-error');
+                    } else if (pollTimes > 30) {
+                        clearInterval(timer);
+                        polling = false;
+                        btn.disabled = false;
+                        btn.innerText = '立即抢购';
+                        showMsg('排队超时，请稍后到订单中查看', 'msg-error');
+                    }
+                })
+                .catch(function () {});
+        }, 1000);
+    }
+
+    // 初始化
+    refreshCaptcha();
+    tick();
+    setInterval(tick, 1000);
+</script>
+</body>
+</html>

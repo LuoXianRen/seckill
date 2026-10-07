@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>商品管理后台</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+<div class="topbar">
+    <span class="brand">🔥 秒杀管理后台</span>
+    <span>
+        <a th:href="@{/seckill/list}">商品列表</a>
+    </span>
+</div>
+<div class="container">
+    <h1 class="page-title">秒杀商品管理</h1>
+    <table>
+        <thead>
+        <tr>
+            <th>ID</th>
+            <th>商品名称</th>
+            <th>秒杀价</th>
+            <th>库存</th>
+            <th>开始时间</th>
+            <th>结束时间</th>
+            <th>状态</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="g : ${goodsList}">
+            <td th:text="${g.id}"></td>
+            <td th:text="${g.goodsName}"></td>
+            <td th:text="${g.seckillPrice}"></td>
+            <td th:text="${g.stockCount}"></td>
+            <td th:text="${#dates.format(g.startDate, 'yyyy-MM-dd HH:mm:ss')}"></td>
+            <td th:text="${#dates.format(g.endDate, 'yyyy-MM-dd HH:mm:ss')}"></td>
+            <td>
+                <span th:if="${g.seckillStatus == 0}">未开始</span>
+                <span th:if="${g.seckillStatus == 1}" style="color:var(--success);">进行中</span>
+                <span th:if="${g.seckillStatus == 2}">已结束</span>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+
+    <div class="admin-section">
+        <h2 class="page-title" style="font-size:18px;">新增秒杀商品</h2>
+        <div class="admin-grid">
+            <div class="form-group">
+                <label>商品名称</label>
+                <input type="text" id="goodsName">
+            </div>
+            <div class="form-group">
+                <label>商品标题</label>
+                <input type="text" id="goodsTitle">
+            </div>
+            <div class="form-group">
+                <label>原价</label>
+                <input type="number" id="goodsPrice" min="0.01" step="0.01">
+            </div>
+            <div class="form-group">
+                <label>秒杀价</label>
+                <input type="number" id="seckillPrice" min="0.01" step="0.01">
+            </div>
+            <div class="form-group">
+                <label>库存</label>
+                <input type="number" id="stockCount" min="1">
+            </div>
+            <div class="form-group">
+                <label>开始时间（分钟后）</label>
+                <input type="number" id="startAfterMinutes" min="0" value="1">
+            </div>
+            <div class="form-group">
+                <label>持续时长（分钟）</label>
+                <input type="number" id="durationMinutes" min="1" value="60">
+            </div>
+        </div>
+        <button class="btn btn-primary" id="addBtn" style="width:160px;">新增商品</button>
+        <div id="addMsg" style="margin-top:10px;font-size:14px;"></div>
+    </div>
+</div>
+<script>
+    document.getElementById('addBtn').addEventListener('click', function () {
+        var msgEl = document.getElementById('addMsg');
+        var startAfter = parseInt(document.getElementById('startAfterMinutes').value || '0', 10);
+        var duration = parseInt(document.getElementById('durationMinutes').value || '0', 10);
+
+        var payload = {
+            goodsName: document.getElementById('goodsName').value.trim(),
+            goodsTitle: document.getElementById('goodsTitle').value.trim(),
+            goodsImg: '',
+            goodsDetail: '',
+            goodsPrice: parseFloat(document.getElementById('goodsPrice').value),
+            seckillPrice: parseFloat(document.getElementById('seckillPrice').value),
+            stockCount: parseInt(document.getElementById('stockCount').value || '0', 10),
+            startTimestamp: Date.now() + startAfter * 60 * 1000,
+            endTimestamp: Date.now() + (startAfter + duration) * 60 * 1000
+        };
+
+        fetch('/admin/goods/add', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(payload)
+        })
+            .then(function (r) { return r.json(); })
+            .then(function (res) {
+                if (res.code === 200) {
+                    msgEl.style.color = 'var(--success)';
+                    msgEl.innerText = '新增成功，商品ID：' + res.data;
+                    setTimeout(function () { window.location.reload(); }, 1000);
+                } else {
+                    msgEl.style.color = 'var(--primary)';
+                    msgEl.innerText = res.message || '新增失败';
+                }
+            })
+            .catch(function () {
+                msgEl.style.color = 'var(--primary)';
+                msgEl.innerText = '网络异常';
+            });
+    });
+</script>
+</body>
+</html>

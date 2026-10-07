@@ -1,0 +1,49 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /
+    encoding:
+      charset: UTF-8
+      force: true
+
+spring:
+  profiles:
+    active: dev
+  thymeleaf:
+    cache: false
+    prefix: classpath:/templates/
+    suffix: .html
+    encoding: UTF-8
+    mode: HTML5
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: GMT+8
+    default-property-inclusion: non_null
+
+mybatis:
+  mapper-locations: classpath:mapper/*.xml
+  type-aliases-package: com.example.seckill.entity
+  configuration:
+    map-underscore-to-camel-case: true
+    cache-enabled: false
+
+# 秒杀业务自定义配置
+seckill:
+  # 动态秒杀地址的服务端盐（生产环境请修改并放到环境变量 / 配置中心）
+  salt: seckill-secret-salt-2026
+  # 订单超时时间（秒），需与 RabbitMQ TTL 队列的 x-message-ttl 保持一致
+  order-timeout-seconds: 30
+
+# springdoc-openapi 接口文档（JDK8 + SpringBoot2.7 兼容）
+springdoc:
+  api-docs:
+    enabled: true
+    path: /v3/api-docs
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
+
+logging:
+  level:
+    root: info
+    com.example.seckill: debug

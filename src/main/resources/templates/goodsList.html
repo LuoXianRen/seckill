@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>秒杀商品列表</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+<div class="topbar">
+    <span class="brand">🔥 高并发秒杀</span>
+    <span>
+        <span class="user-info" th:if="${user != null}">
+            欢迎，<span th:text="${user.nickname}">用户</span>　|　
+        </span>
+        <a th:href="@{/admin/goods}">管理后台</a>
+    </span>
+</div>
+<div class="container">
+    <h1 class="page-title">秒杀商品</h1>
+    <div class="goods-grid">
+        <div class="goods-card" th:each="g : ${goodsList}">
+            <span class="badge badge-wait" th:if="${g.seckillStatus == 0}">未开始</span>
+            <span class="badge badge-on" th:if="${g.seckillStatus == 1}">进行中</span>
+            <span class="badge badge-end" th:if="${g.seckillStatus == 2}">已结束</span>
+
+            <div class="g-name" th:text="${g.goodsName}">商品名称</div>
+            <div class="g-title" th:text="${g.goodsTitle}">商品标题</div>
+            <div class="price-row">
+                <span class="price-now">¥<span th:text="${g.seckillPrice}">0</span></span>
+                <span class="price-origin">¥<span th:text="${g.goodsPrice}">0</span></span>
+            </div>
+            <div class="stock-text">剩余库存：<span th:text="${g.stockCount}">0</span> 件</div>
+            <a class="btn btn-primary" th:href="@{'/seckill/detail/' + ${g.id}}">查看详情</a>
+        </div>
+    </div>
+</div>
+</body>
+</html>

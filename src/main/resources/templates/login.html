@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录 - 高并发秒杀系统</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+<div class="login-wrap">
+    <div class="login-card">
+        <h2>🔥 秒杀系统</h2>
+        <p class="tip">高并发实战作品 · 请登录后参与秒杀</p>
+        <div id="errorMsg" class="error-msg"></div>
+        <div class="form-group">
+            <label for="mobile">手机号</label>
+            <input type="text" id="mobile" placeholder="请输入手机号" autocomplete="username">
+        </div>
+        <div class="form-group">
+            <label for="password">密码</label>
+            <input type="password" id="password" placeholder="请输入密码" autocomplete="current-password">
+        </div>
+        <button class="btn btn-primary" id="loginBtn">登 录</button>
+        <p class="tip" style="margin-top:18px;">测试账号：13800000001 / 密码：123456</p>
+    </div>
+</div>
+<script>
+    function showError(msg) {
+        document.getElementById('errorMsg').innerText = msg || '';
+    }
+
+    function doLogin() {
+        var mobile = document.getElementById('mobile').value.trim();
+        var password = document.getElementById('password').value.trim();
+        if (!mobile) { showError('请输入手机号'); return; }
+        if (!password) { showError('请输入密码'); return; }
+        showError('');
+
+        fetch('/do_login', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({mobile: mobile, password: password})
+        })
+            .then(function (resp) { return resp.json(); })
+            .then(function (res) {
+                if (res.code === 200) {
+                    window.location.href = '/seckill/list';
+                } else {
+                    showError(res.message || '登录失败');
+                }
+            })
+            .catch(function () { showError('网络异常，请稍后再试'); });
+    }
+
+    document.getElementById('loginBtn').addEventListener('click', doLogin);
+    document.getElementById('password').addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') { doLogin(); }
+    });
+</script>
+</body>
+</html>
